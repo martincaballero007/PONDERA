@@ -59,10 +59,10 @@ def extract_header_metadata(text_lines):
 def extract_course_code_from_acta(acta_str):
     if not acta_str:
         return ""
-    # Pattern 1: Alphanumeric code (INO101, INE002, INO201, etc.)
-    m_alpha = re.search(r'\b([A-Za-z]{3,6}\d{2,4})\b', acta_str)
+    # Pattern 1: Alphanumeric code (INO101, INE002, INO201, INO106, etc.)
+    m_alpha = re.search(r'([A-Za-z]{3,6}\d{3})', acta_str)
     if m_alpha:
-        return m_alpha.group(1)
+        return m_alpha.group(1).upper()
     
     # Pattern 2: 9-digit course code right after UNMSM school prefix 20230 (e.g. 202302032303011P -> 203230301)
     m_num9 = re.search(r'20230(\d{9})', acta_str)
@@ -155,6 +155,7 @@ def parse_historial_file(pdf_file_or_path):
 
             pending_course = None
             last_added_course = None
+            unbound_course_header = None
 
             for line in lines:
                 line_s = re.sub(r'\s+', ' ', clean_pdf_text(line.strip()))
@@ -170,6 +171,7 @@ def parse_historial_file(pdf_file_or_path):
                         periods.append(current_period)
                     pending_course = None
                     last_added_course = None
+                    unbound_course_header = None
                     continue
 
                 if not current_period:
@@ -179,6 +181,11 @@ def parse_historial_file(pdf_file_or_path):
                 if m_start:
                     ciclo, plan, tipo, rest = m_start.groups()
                     rest = (rest or '').strip()
+
+                    if unbound_course_header:
+                        rest = (unbound_course_header + " " + rest).strip()
+                        unbound_course_header = None
+
                     m_end = re.search(r'(?:(\d{1,2})\s+)?(\d+\.\d)\s+(\d+)\s+([PA]\s*-\s*\S+)$', rest) if rest else None
                     if m_end:
                         calif, cred, sec, acta = m_end.groups()
@@ -267,22 +274,26 @@ def parse_historial_file(pdf_file_or_path):
                         pending_course = None
                     else:
                         pending_course['prefix'] = (pending_course['prefix'] + " " + line_s).strip()
-                elif last_added_course:
-                    is_header_or_metadata = any(k in line_s for k in ['Página', 'Documento Verificable', 'Ciclo Plan', 'Creditaje', 'Resumen', 'Periodo'])
-                    has_course_code_pattern = bool(re.search(r'(?:[A-Za-z0-9]{3,12}\s*-\s*|\b\d{9}\b)', line_s))
-                    
-                    if not is_header_or_metadata and not has_course_code_pattern:
-                        full_asig = (last_added_course['asignatura_full'] + " " + line_s).strip()
-                        full_asig = re.sub(r'\s+', ' ', full_asig)
-                        code, name = parse_course_code_name(full_asig)
-                        full_code = code or last_added_course.get('codigo', '')
-                        full_name = name or full_asig
-                        last_added_course['asignatura_full'] = full_asig
-                        if full_code:
-                            last_added_course['codigo'] = full_code
-                        if full_name:
-                            last_added_course['nombre'] = full_name
-                    last_added_course = None
+                else:
+                    has_course_code = bool(re.search(r'(?:^[A-Za-z0-9]{3,12}\s*-\s*|^\d{9}\s*-\s*)', line_s))
+                    is_metadata = any(k in line_s for k in ['Página', 'Documento Verificable', 'Ciclo Plan', 'Creditaje', 'Resumen', 'Periodo'])
+
+                    if has_course_code and not is_metadata:
+                        unbound_course_header = line_s
+                        last_added_course = None
+                    elif last_added_course:
+                        if not is_metadata:
+                            full_asig = (last_added_course['asignatura_full'] + " " + line_s).strip()
+                            full_asig = re.sub(r'\s+', ' ', full_asig)
+                            code, name = parse_course_code_name(full_asig)
+                            full_code = code or last_added_course.get('codigo', '')
+                            full_name = name or full_asig
+                            last_added_course['asignatura_full'] = full_asig
+                            if full_code:
+                                last_added_course['codigo'] = full_code
+                            if full_name:
+                                last_added_course['nombre'] = full_name
+                        last_added_course = None
 
     return periods, resumen, metadata
 
