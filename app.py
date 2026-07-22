@@ -176,41 +176,54 @@ def compute_all_ponderados(periods_data, base_resumen=None):
             period['ppc'] = None
             period['evaluated_credits'] = 0.0
 
-    # Calculate global PPG across evaluated period attempts
-    computed_ppg = round(total_weighted_points / total_evaluated_credits, 3) if total_evaluated_credits > 0 else 0.0
+    # Track evaluated courses (best attempt per course globally, taking highest approved grade or latest attempt)
+    eval_courses = {}
+    for period in periods_data:
+        for idx, c in enumerate(period.get('courses', [])):
+            if c.get('evaluated_in_ppc') and c.get('calificacion') is not None:
+                code_key = (c.get('codigo') or c.get('nombre') or f"c_{idx}").strip()
+                grade = c['calificacion']
+                cred = float(c.get('creditos', 0.0))
+                tipo = c.get('tipo', 'O')
+                
+                if code_key not in eval_courses:
+                    eval_courses[code_key] = {'calificacion': grade, 'creditos': cred, 'tipo': tipo}
+                else:
+                    if grade > eval_courses[code_key]['calificacion']:
+                        eval_courses[code_key] = {'calificacion': grade, 'creditos': cred, 'tipo': tipo}
 
-    # Credit category breakdown for approved courses
+    pts_total = 0.0
+    cr_total = 0.0
+    approved_credits = 0.0
+    
     cat_credits = {
         'obligatorios': 0.0, 'especialidad': 0.0, 'electivos_generales': 0.0,
         'electivos_especialidad': 0.0, 'optativos': 0.0, 'alternativos': 0.0,
         'otra_especialidad': 0.0, 'mas_de_una_vez': 0.0, 'otros': 0.0
     }
 
-    for code_key, c_info in unique_approved_courses.items():
+    for code_key, c_info in eval_courses.items():
+        grade = c_info['calificacion']
         cr = c_info['creditos']
         t = c_info['tipo']
-        if t == 'E':
-            cat_credits['electivos_generales'] += cr
-        elif t == 'O' or t == 'Ο':
-            cat_credits['obligatorios'] += cr
-        else:
-            cat_credits['otros'] += cr
+
+        pts_total += grade * cr
+        cr_total += cr
+
+        if grade >= 11:
+            approved_credits += cr
+            if t == 'E':
+                cat_credits['electivos_generales'] += cr
+            elif t == 'O' or t == 'Ο':
+                cat_credits['obligatorios'] += cr
+            else:
+                cat_credits['otros'] += cr
 
     required = float(base_resumen.get('required_credits', 221.0)) if base_resumen and base_resumen.get('required_credits') else 221.0
-    
-    # Use official SUM report values when available from PDF parser
-    if base_resumen and base_resumen.get('approved_credits'):
-        approved_credits = float(base_resumen['approved_credits'])
-        obligatorios = float(base_resumen.get('obligatorios', cat_credits['obligatorios']))
-        electivos_generales = float(base_resumen.get('electivos_generales', cat_credits['electivos_generales']))
-        missing_credits = float(base_resumen.get('missing_credits', max(0.0, required - approved_credits)))
-        ppg = float(base_resumen.get('ppg', computed_ppg))
-    else:
-        approved_credits = sum(cat_credits.values())
-        obligatorios = cat_credits['obligatorios']
-        electivos_generales = cat_credits['electivos_generales']
-        missing_credits = max(0.0, required - approved_credits) if required > 0 else 0.0
-        ppg = computed_ppg
+    obligatorios = cat_credits['obligatorios']
+    electivos_generales = cat_credits['electivos_generales']
+    missing_credits = max(0.0, required - approved_credits) if required > 0 else 0.0
+    ppg = round(pts_total / cr_total, 3) if cr_total > 0 else 0.0
 
     resumen = {
         'required_credits': required,

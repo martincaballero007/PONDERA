@@ -8,6 +8,8 @@ let state = {
     activeTab: null,
     planExpanded: false,
     isEmpty: true,
+    initialPeriods: null,
+    initialResumen: null,
     // Simulation state
     simSelectedCodes: new Set(),
     simCreditsCurrent: 0.0
@@ -241,9 +243,9 @@ function renderCourseTables() {
             <td><span class="badge-tipo ${c.tipo}">${c.tipo === 'O' ? 'Obligatorio' : 'Electivo'}</span></td>
             <td><div><strong>${c.codigo || ''}</strong></div><div style="font-size:12px; color:#4B5563;">${c.nombre || c.asignatura_full}</div></td>
             <td><strong>${c.creditos.toFixed(1)}</strong></td>
-            <td><input type="number" class="grade-input" min="0" max="20" step="1" value="${showEmpty ? '' : epVal}" placeholder="--" onchange="onGradeChange('${currentPeriod.period}', ${idx}, 'ep', this.value)"></td>
-            <td><input type="number" class="grade-input" min="0" max="20" step="1" value="${showEmpty ? '' : ecVal}" placeholder="--" onchange="onGradeChange('${currentPeriod.period}', ${idx}, 'ec', this.value)"></td>
-            <td><input type="number" class="grade-input" min="0" max="20" step="1" value="${showEmpty ? '' : efVal}" placeholder="--" onchange="onGradeChange('${currentPeriod.period}', ${idx}, 'ef', this.value)"></td>
+            <td><input type="number" class="grade-input" min="0" max="20" step="1" value="${showEmpty ? '' : epVal}" placeholder="--" oninput="onGradeChange('${currentPeriod.period}', ${idx}, 'ep', this.value)" onchange="onGradeChange('${currentPeriod.period}', ${idx}, 'ep', this.value)"></td>
+            <td><input type="number" class="grade-input" min="0" max="20" step="1" value="${showEmpty ? '' : ecVal}" placeholder="--" oninput="onGradeChange('${currentPeriod.period}', ${idx}, 'ec', this.value)" onchange="onGradeChange('${currentPeriod.period}', ${idx}, 'ec', this.value)"></td>
+            <td><input type="number" class="grade-input" min="0" max="20" step="1" value="${showEmpty ? '' : efVal}" placeholder="--" oninput="onGradeChange('${currentPeriod.period}', ${idx}, 'ef', this.value)" onchange="onGradeChange('${currentPeriod.period}', ${idx}, 'ef', this.value)"></td>
             <td><span class="grade-final ${gradeClass}" id="grade-final-${currentPeriod.period}-${idx}">${califDisplay}</span></td>
         </tr>`;
     });
@@ -314,6 +316,22 @@ function enrichLocalPeriodsWithPlan() {
             }
         });
     });
+}
+
+function undoChanges() {
+    if (!state.initialPeriods || state.initialPeriods.length === 0) {
+        alert("No hay cambios guardados para deshacer.");
+        return;
+    }
+    state.periods = JSON.parse(JSON.stringify(state.initialPeriods));
+    if (state.initialResumen) {
+        state.resumen = JSON.parse(JSON.stringify(state.initialResumen));
+    }
+    state.activeTab = state.periods.length > 0 ? state.periods[0].period : null;
+    enrichLocalPeriodsWithPlan();
+    recalculateAll();
+    renderAll();
+    alert("↺ Se han deshecho todos los cambios, notas editadas y ciclos simulados.");
 }
 
 async function recalculateAll() {
@@ -764,6 +782,8 @@ function setupUploadHandlers() {
                     const simPeriods = state.periods.filter(p => p.is_simulated);
                     state.periods = [...data.periods, ...simPeriods];
                     state.resumen = data.resumen;
+                    state.initialPeriods = JSON.parse(JSON.stringify(data.periods));
+                    state.initialResumen = JSON.parse(JSON.stringify(data.resumen));
                     state.chartData = data.chart_data;
                     state.compatibility = data.compatibility;
                     state.isEmpty = false;
