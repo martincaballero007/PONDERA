@@ -72,7 +72,6 @@
 
         <!-- Resumen de Historial Académico (4 Tarjetas Métricas KPI) -->
         <section class="dashboard-grid">
-            <!-- PPG Card -->
             <div class="metric-card ppg-card">
                 <div class="metric-header">
                     <span class="metric-title">Promedio Ponderado General</span>
@@ -81,8 +80,6 @@
                 <div class="metric-value-large" id="ppg-val">--</div>
                 <div class="metric-footer">Acumulado Vigesimal (0-20)</div>
             </div>
-
-            <!-- Required Credits Card -->
             <div class="metric-card">
                 <div class="metric-header">
                     <span class="metric-title">Creditaje Requerido</span>
@@ -91,8 +88,6 @@
                 <div class="metric-value" id="req-credits-val">--</div>
                 <div class="metric-footer">Exigido para Egresar</div>
             </div>
-
-            <!-- Approved Credits Card -->
             <div class="metric-card">
                 <div class="metric-header">
                     <span class="metric-title">Creditaje Aprobado</span>
@@ -104,8 +99,6 @@
                 </div>
                 <div class="metric-footer" id="progress-pct-text">Sin datos</div>
             </div>
-
-            <!-- Missing Credits Card -->
             <div class="metric-card">
                 <div class="metric-header">
                     <span class="metric-title">Creditaje Faltante</span>
@@ -125,51 +118,21 @@
 
         <!-- Desglose por Tipo de Crédito y Resumen por Ciclo Section -->
         <section class="stats-dual-section mb-24">
-            <!-- Desglose por Tipo de Crédito Card -->
             <div class="breakdown-card">
                 <h2 class="section-heading">Desglose por Tipo de Crédito</h2>
                 <p class="section-subtext">Distribución del creditaje acumulado</p>
                 <div class="breakdown-grid-3col">
-                    <div class="breakdown-item">
-                        <span class="item-label">Obligatorios</span>
-                        <span class="item-val" id="cat-obligatorios">0.0</span>
-                    </div>
-                    <div class="breakdown-item">
-                        <span class="item-label">De Especialidad</span>
-                        <span class="item-val" id="cat-especialidad">0.0</span>
-                    </div>
-                    <div class="breakdown-item">
-                        <span class="item-label">Electivos Generales</span>
-                        <span class="item-val" id="cat-electivos-generales">0.0</span>
-                    </div>
-                    <div class="breakdown-item">
-                        <span class="item-label">Electivos Especialidad</span>
-                        <span class="item-val" id="cat-electivos-especialidad">0.0</span>
-                    </div>
-                    <div class="breakdown-item">
-                        <span class="item-label">Optativos</span>
-                        <span class="item-val" id="cat-optativos">0.0</span>
-                    </div>
-                    <div class="breakdown-item">
-                        <span class="item-label">Alternativos</span>
-                        <span class="item-val" id="cat-alternativos">0.0</span>
-                    </div>
-                    <div class="breakdown-item">
-                        <span class="item-label">De Otra Especialidad</span>
-                        <span class="item-val" id="cat-otra-especialidad">0.0</span>
-                    </div>
-                    <div class="breakdown-item">
-                        <span class="item-label">Más de una vez</span>
-                        <span class="item-val" id="cat-mas-de-una-vez">0.0</span>
-                    </div>
-                    <div class="breakdown-item">
-                        <span class="item-label">Otros</span>
-                        <span class="item-val" id="cat-otros">0.0</span>
-                    </div>
+                    <div class="breakdown-item"><span class="item-label">Obligatorios</span><span class="item-val" id="cat-obligatorios">0.0</span></div>
+                    <div class="breakdown-item"><span class="item-label">De Especialidad</span><span class="item-val" id="cat-especialidad">0.0</span></div>
+                    <div class="breakdown-item"><span class="item-label">Electivos Generales</span><span class="item-val" id="cat-electivos-generales">0.0</span></div>
+                    <div class="breakdown-item"><span class="item-label">Electivos Especialidad</span><span class="item-val" id="cat-electivos-especialidad">0.0</span></div>
+                    <div class="breakdown-item"><span class="item-label">Optativos</span><span class="item-val" id="cat-optativos">0.0</span></div>
+                    <div class="breakdown-item"><span class="item-label">Alternativos</span><span class="item-val" id="cat-alternativos">0.0</span></div>
+                    <div class="breakdown-item"><span class="item-label">De Otra Especialidad</span><span class="item-val" id="cat-otra-especialidad">0.0</span></div>
+                    <div class="breakdown-item"><span class="item-label">Más de una vez</span><span class="item-val" id="cat-mas-de-una-vez">0.0</span></div>
+                    <div class="breakdown-item"><span class="item-label">Otros</span><span class="item-val" id="cat-otros">0.0</span></div>
                 </div>
             </div>
-
-            <!-- Resumen por Ciclo (PPC) Card -->
             <div class="ppc-summary-card">
                 <h2 class="section-heading">Resumen por Ciclo (PPC)</h2>
                 <p class="section-subtext">Promedios Ponderados por Periodo Académico</p>
@@ -186,9 +149,14 @@
                     <h2 class="section-heading">Edición Interactiva de Notas por Curso</h2>
                     <p class="section-subtext">Edite las notas enteras (0-20) de EP (30%), EC (40%) y EF (30%) para recalcular los promedios en tiempo real.</p>
                 </div>
-                <button class="btn btn-primary" onclick="recalculateAll()">
-                    <span>🔄 Recalcular Todo</span>
-                </button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-simulate" onclick="openSimulateModal()" id="btn-simular-ciclo">
+                        <span>➕ Simular Nuevo Ciclo</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="recalculateAll()">
+                        <span>🔄 Recalcular Todo</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Period Tabs Bar -->
@@ -215,7 +183,6 @@
                     ▼ Ver Plan de Estudios Completo
                 </button>
             </div>
-            
             <div id="plan-estudios-body" style="display: none; margin-top: 20px;">
                 <div class="plan-cycles-container" id="plan-cycles-container">
                     <div class="empty-state-box">
@@ -231,6 +198,63 @@
         <footer class="app-footer">
             <p>Pondera &copy; 2026 - Universidad Nacional Mayor de San Marcos</p>
         </footer>
+    </div>
+
+    <!-- ========== MODAL: Simular Nuevo Ciclo ========== -->
+    <div class="modal-overlay" id="modal-simular-ciclo" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>➕ Simular Nuevo Ciclo</h2>
+                <button class="modal-close-btn" onclick="closeSimulateModal()">✕</button>
+            </div>
+
+            <!-- Tipo de Ciclo y Nombre -->
+            <div class="modal-config-row">
+                <div class="modal-field">
+                    <label>Tipo de Periodo</label>
+                    <select id="sim-tipo-periodo" onchange="onSimTipoChange()">
+                        <option value="regular">Ciclo Regular (máx. 26.0 cr)</option>
+                        <option value="verano">Verano / Nivelación (máx. 11.0 cr)</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label>Nombre del Periodo</label>
+                    <input type="text" id="sim-periodo-nombre" placeholder="Ej: 2025-2" />
+                </div>
+            </div>
+
+            <!-- Barra de Créditos -->
+            <div class="sim-credits-bar">
+                <div class="sim-credits-info">
+                    <span>Créditos seleccionados:</span>
+                    <strong id="sim-credits-count">0.0</strong> / <strong id="sim-credits-max">26.0</strong>
+                </div>
+                <div class="progress-bar-container" style="margin-top:6px;">
+                    <div class="progress-bar-fill sim-credits-fill" id="sim-credits-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Navegación por Ciclos -->
+            <div class="sim-cycle-nav" id="sim-cycle-nav"></div>
+
+            <!-- Lista de Cursos del Ciclo Seleccionado -->
+            <div class="sim-courses-scroll">
+                <div id="sim-cycle-title" class="sim-cycle-title"></div>
+                <!-- Cursos Disponibles -->
+                <div class="sim-section-label available-label">✅ Disponibles (prerrequisitos cumplidos)</div>
+                <div id="sim-available-list" class="sim-course-list"></div>
+
+                <!-- Cursos Bloqueados -->
+                <div class="sim-section-label locked-label">🔒 Bloqueados (prerrequisito pendiente)</div>
+                <div id="sim-locked-list" class="sim-course-list"></div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeSimulateModal()">Cancelar</button>
+                <button class="btn btn-primary" id="btn-confirm-sim" onclick="confirmSimulatedPeriod()">✨ Crear Ciclo Simulado</button>
+            </div>
+        </div>
     </div>
 
     <!-- Application JavaScript -->

@@ -623,3 +623,379 @@ body {
     font-size: 12px;
     color: var(--text-muted);
 }
+
+/* ========== Simulate Button ========== */
+.btn-simulate {
+    background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+    color: white;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(109, 40, 217, 0.25);
+}
+
+.btn-simulate:hover {
+    background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+    box-shadow: 0 6px 16px rgba(109, 40, 217, 0.35);
+    transform: translateY(-1px);
+}
+
+/* Simulated Tab Styling */
+.tab-btn.simulated {
+    color: #7C3AED;
+    border-bottom-color: transparent;
+    position: relative;
+}
+
+.tab-btn.simulated.active {
+    border-bottom-color: #7C3AED;
+}
+
+.tab-btn.simulated::after {
+    content: 'Simulado';
+    font-size: 9px;
+    font-weight: 700;
+    background: #EDE9FE;
+    color: #6D28D9;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Delete simulated period button */
+.btn-delete-sim {
+    background: #FEE2E2;
+    color: #DC2626;
+    border: 1px solid #FECACA;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-delete-sim:hover {
+    background: #FCA5A5;
+    color: #991B1B;
+}
+
+/* ========== Modal Overlay ========== */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 720px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h2 {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-dark);
+}
+
+.modal-close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: #F3F4F6;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.modal-close-btn:hover {
+    background: #E5E7EB;
+    color: var(--text-dark);
+}
+
+/* Modal Config Row */
+.modal-config-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 20px 24px 0;
+}
+
+.modal-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.modal-field select,
+.modal-field input[type="text"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    color: var(--text-dark);
+    background: white;
+    transition: border-color 0.15s;
+}
+
+.modal-field select:focus,
+.modal-field input[type="text"]:focus {
+    outline: none;
+    border-color: #7C3AED;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+/* Credits Bar in Modal */
+.sim-credits-bar {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sim-credits-info {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.sim-credits-info strong {
+    color: var(--text-dark);
+    font-size: 15px;
+}
+
+.sim-credits-fill {
+    background: linear-gradient(90deg, #8B5CF6, #6D28D9) !important;
+    transition: width 0.3s ease;
+}
+
+/* Scrollable Course List */
+.sim-courses-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 24px;
+    max-height: 360px;
+}
+
+.sim-section-label {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 0;
+    margin-top: 8px;
+}
+
+.sim-section-label.available-label { color: #059669; }
+.sim-section-label.locked-label { color: #9CA3AF; margin-top: 16px; }
+
+.sim-course-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Course Checkbox Row */
+.sim-course-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: #FAFAFA;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.sim-course-row:hover {
+    background: #F0F0FF;
+    border-color: #C4B5FD;
+}
+
+.sim-course-row.checked {
+    background: #EDE9FE;
+    border-color: #A78BFA;
+}
+
+.sim-course-row.locked {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: #F9FAFB;
+}
+
+.sim-course-row.locked:hover {
+    background: #F9FAFB;
+    border-color: var(--border-color);
+}
+
+.sim-course-row.over-limit {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.sim-course-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #7C3AED;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.sim-course-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.sim-course-name {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sim-course-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.sim-course-credits {
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--text-dark);
+    white-space: nowrap;
+}
+
+.sim-prereq-reason {
+    font-size: 11px;
+    color: #DC2626;
+    margin-top: 2px;
+}
+
+/* Modal Footer */
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* ========== Cycle Navigation inside Modal ========== */
+.sim-cycle-nav {
+    display: flex;
+    gap: 8px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+    flex-shrink: 0;
+}
+
+.sim-cycle-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: #F9FAFB;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sim-cycle-btn:hover {
+    background: #EDE9FE;
+    border-color: #C4B5FD;
+    color: #6D28D9;
+}
+
+.sim-cycle-btn.active {
+    background: linear-gradient(135deg, #8B5CF6, #6D28D9);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 3px 10px rgba(109, 40, 217, 0.3);
+}
+
+.sim-cycle-btn .cycle-count {
+    font-size: 10px;
+    font-weight: 800;
+    background: rgba(255,255,255,0.25);
+    padding: 1px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+}
+
+.sim-cycle-btn:not(.active) .cycle-count {
+    background: #E5E7EB;
+    color: #6B7280;
+}
+
+.sim-cycle-btn .cycle-selected {
+    font-size: 10px;
+    font-weight: 800;
+    background: #10B981;
+    color: white;
+    padding: 1px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+}
+
+.sim-cycle-btn:not(.active) .cycle-selected {
+    background: #10B981;
+    color: white;
+}
+
+.sim-cycle-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #6D28D9;
+    padding-bottom: 10px;
+    margin-bottom: 6px;
+    border-bottom: 2px solid #EDE9FE;
+}

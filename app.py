@@ -66,29 +66,18 @@ def validate_document_compatibility(historial_meta, plan_meta, periods_data, pla
 def compute_all_ponderados(periods_data, base_resumen=None):
     total_weighted_points = 0.0
     total_evaluated_credits = 0.0
-    
-    cat_credits = {
-        'obligatorios': 0.0,
-        'especialidad': 0.0,
-        'electivos_generales': 0.0,
-        'electivos_especialidad': 0.0,
-        'optativos': 0.0,
-        'alternativos': 0.0,
-        'otra_especialidad': 0.0,
-        'mas_de_una_vez': 0.0,
-        'otros': 0.0
-    }
 
     chart_periods = []
     chart_ppcs = []
+
+    # Map to track unique approved courses globally for Approved Credit KPIs (92.0 cr)
+    unique_approved_courses = {}
 
     for period in periods_data:
         p_name = period.get('period', '')
         courses = period.get('courses', [])
         
-        period_weighted_points = 0.0
-        period_evaluated_credits = 0.0
-        
+        # 1. Calculate grade for each course entry
         for c in courses:
             user_edited = c.get('user_edited', False)
             en_curso = c.get('en_curso', False)
@@ -98,30 +87,60 @@ def compute_all_ponderados(periods_data, base_resumen=None):
             ef = int(c.get('ef', 0))
             
             exact, rounded = calculate_course_grade(ep, ec, ef)
-            cred = float(c.get('creditos', 0.0))
-            
-            if en_curso and not user_edited and ep == 0 and ec == 0 and ef == 0:
-                c['calificacion'] = None
-                c['exact_grade'] = None
-                continue
-
             c['ep'] = ep
             c['ec'] = ec
             c['ef'] = ef
             c['exact_grade'] = round(exact, 2)
-            c['calificacion'] = rounded
-            
-            if rounded >= 11:
-                tipo = c.get('tipo', 'O')
-                if tipo == 'E':
-                    cat_credits['electivos_generales'] += cred
-                elif tipo == 'O' or tipo == 'Ο':
-                    cat_credits['obligatorios'] += cred
-                else:
-                    cat_credits['otros'] += cred
+            if not (en_curso and not user_edited and ep == 0 and ec == 0 and ef == 0):
+                c['calificacion'] = rounded
 
-            period_weighted_points += rounded * cred
-            period_evaluated_credits += cred
+        # 2. Deduplicate attempts WITHIN THE SAME PERIOD (Aplazados vs Regular in same cycle)
+        best_indices_in_period = set()
+        course_best_map = {}
+        for idx, c in enumerate(courses):
+            if c.get('calificacion') is None:
+                continue
+            code_key = (c.get('codigo') or c.get('nombre') or f"c_{idx}").strip()
+            grade = c['calificacion']
+            acta = c.get('acta', '')
+            is_aplazado = 'A' in acta[:2] or 'A -' in acta or 'A-' in acta
+
+            if code_key not in course_best_map:
+                course_best_map[code_key] = (grade, is_aplazado, idx)
+            else:
+                ex_grade, ex_aplazado, ex_idx = course_best_map[code_key]
+                if (grade >= 11 and ex_grade < 11) or (grade > ex_grade) or (grade == ex_grade and is_aplazado):
+                    course_best_map[code_key] = (grade, is_aplazado, idx)
+
+        for key, val in course_best_map.items():
+            best_indices_in_period.add(val[2])
+
+        period_weighted_points = 0.0
+        period_evaluated_credits = 0.0
+        
+        for idx, c in enumerate(courses):
+            rounded = c.get('calificacion')
+            cred = float(c.get('creditos', 0.0))
+            
+            if rounded is None:
+                continue
+
+            if idx in best_indices_in_period:
+                c['evaluated_in_ppc'] = True
+                period_weighted_points += rounded * cred
+                period_evaluated_credits += cred
+
+                # Track unique approved course globally for credit category breakdown (92.0 cr)
+                if rounded >= 11:
+                    code_key = (c.get('codigo') or c.get('nombre') or f"c_{idx}").strip()
+                    if code_key not in unique_approved_courses or rounded > unique_approved_courses[code_key]['calificacion']:
+                        unique_approved_courses[code_key] = {
+                            'calificacion': rounded,
+                            'creditos': cred,
+                            'tipo': c.get('tipo', 'O')
+                        }
+            else:
+                c['evaluated_in_ppc'] = False
         
         if period_evaluated_credits > 0:
             ppc = round(period_weighted_points / period_evaluated_credits, 3)
@@ -135,27 +154,54 @@ def compute_all_ponderados(periods_data, base_resumen=None):
             period['ppc'] = None
             period['evaluated_credits'] = 0.0
 
-    ppg = round(total_weighted_points / total_evaluated_credits, 3) if total_evaluated_credits > 0 else 0.0
+    # Calculate global PPG across evaluated period attempts
+    computed_ppg = round(total_weighted_points / total_evaluated_credits, 3) if total_evaluated_credits > 0 else 0.0
+
+    # Credit category breakdown for approved courses
+    cat_credits = {
+        'obligatorios': 0.0, 'especialidad': 0.0, 'electivos_generales': 0.0,
+        'electivos_especialidad': 0.0, 'optativos': 0.0, 'alternativos': 0.0,
+        'otra_especialidad': 0.0, 'mas_de_una_vez': 0.0, 'otros': 0.0
+    }
+
+    for code_key, c_info in unique_approved_courses.items():
+        cr = c_info['creditos']
+        t = c_info['tipo']
+        if t == 'E':
+            cat_credits['electivos_generales'] += cr
+        elif t == 'O' or t == 'Ο':
+            cat_credits['obligatorios'] += cr
+        else:
+            cat_credits['otros'] += cr
+
+    required = float(base_resumen.get('required_credits', 221.0)) if base_resumen and base_resumen.get('required_credits') else 221.0
     
-    required = 221.0
-    if base_resumen and 'required_credits' in base_resumen:
-        required = float(base_resumen['required_credits'])
-        
-    approved_credits = sum(cat_credits.values())
-    missing_credits = max(0.0, required - approved_credits) if required > 0 else 0.0
+    # Use official SUM report values when available from PDF parser
+    if base_resumen and base_resumen.get('approved_credits'):
+        approved_credits = float(base_resumen['approved_credits'])
+        obligatorios = float(base_resumen.get('obligatorios', cat_credits['obligatorios']))
+        electivos_generales = float(base_resumen.get('electivos_generales', cat_credits['electivos_generales']))
+        missing_credits = float(base_resumen.get('missing_credits', max(0.0, required - approved_credits)))
+        ppg = float(base_resumen.get('ppg', computed_ppg))
+    else:
+        approved_credits = sum(cat_credits.values())
+        obligatorios = cat_credits['obligatorios']
+        electivos_generales = cat_credits['electivos_generales']
+        missing_credits = max(0.0, required - approved_credits) if required > 0 else 0.0
+        ppg = computed_ppg
 
     resumen = {
         'required_credits': required,
         'approved_credits': approved_credits,
-        'obligatorios': cat_credits['obligatorios'],
-        'especialidad': cat_credits['especialidad'],
-        'electivos_generales': cat_credits['electivos_generales'],
-        'electivos_especialidad': cat_credits['electivos_especialidad'],
-        'optativos': cat_credits['optativos'],
-        'alternativos': cat_credits['alternativos'],
-        'otra_especialidad': cat_credits['otra_especialidad'],
-        'mas_de_una_vez': cat_credits['mas_de_una_vez'],
-        'otros': cat_credits['otros'],
+        'obligatorios': obligatorios,
+        'especialidad': float(base_resumen.get('especialidad', 0.0)) if base_resumen else 0.0,
+        'electivos_generales': electivos_generales,
+        'electivos_especialidad': float(base_resumen.get('electivos_especialidad', 0.0)) if base_resumen else 0.0,
+        'optativos': float(base_resumen.get('optativos', 0.0)) if base_resumen else 0.0,
+        'alternativos': float(base_resumen.get('alternativos', 0.0)) if base_resumen else 0.0,
+        'otra_especialidad': float(base_resumen.get('otra_especialidad', 0.0)) if base_resumen else 0.0,
+        'mas_de_una_vez': float(base_resumen.get('mas_de_una_vez', 0.0)) if base_resumen else 0.0,
+        'otros': float(base_resumen.get('otros', 0.0)) if base_resumen else 0.0,
         'missing_credits': missing_credits,
         'ppg': ppg
     }
