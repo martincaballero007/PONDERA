@@ -389,14 +389,14 @@ function renderPlanEstudios() {
     const cycles = state.planCycles || {};
     const cycleKeys = Object.keys(cycles).sort((a, b) => parseInt(a) - parseInt(b));
     if (cycleKeys.length === 0) {
-        container.innerHTML = `<div class="empty-state-box"><div style="font-size:36px; margin-bottom:10px;">📚</div><h3 style="font-size:16px; font-weight:700; color:#1F2937; margin-bottom:6px;">No hay datos de plan de estudios cargados</h3><p style="font-size:13px; color:#6B7280;">Por favor, suba su archivo PDF de <strong>Plan de Estudios</strong> para consultar la malla curricular de su carrera.</p></div>`;
+        container.innerHTML = `<div class="empty-state-box"><div style="display:flex; justify-content:center; margin-bottom:10px; color:#9CA3AF;"><svg class="icon-svg-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div><h3 style="font-size:16px; font-weight:700; color:#1F2937; margin-bottom:6px;">No hay datos de plan de estudios cargados</h3><p style="font-size:13px; color:#6B7280;">Por favor, suba su archivo PDF de <strong>Plan de Estudios</strong> para consultar la malla curricular de su carrera.</p></div>`;
         return;
     }
     cycleKeys.forEach(cNum => {
         const courses = cycles[cNum];
         const card = document.createElement('div');
         card.className = 'plan-cycle-card';
-        let html = `<div class="plan-cycle-header"><span>📚 Ciclo ${cNum}</span><span>${courses.length} asignaturas</span></div><div class="course-table-wrapper"><table class="plan-table"><thead><tr><th class="plan-col-code">Código</th><th class="plan-col-name">Asignatura</th><th class="plan-col-cred">Créditos</th><th class="plan-col-tipo">Tipo</th><th class="plan-col-prereq">Prerrequisitos</th></tr></thead><tbody>`;
+        let html = `<div class="plan-cycle-header"><span style="display:inline-flex; align-items:center; gap:6px;"><svg class="icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#2563EB"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Ciclo ${cNum}</span><span>${courses.length} asignaturas</span></div><div class="course-table-wrapper"><table class="plan-table"><thead><tr><th class="plan-col-code">Código</th><th class="plan-col-name">Asignatura</th><th class="plan-col-cred">Créditos</th><th class="plan-col-tipo">Tipo</th><th class="plan-col-prereq">Prerrequisitos</th></tr></thead><tbody>`;
         courses.forEach(c => {
             html += `<tr><td class="plan-col-code"><strong>${c.codigo || '--'}</strong></td><td class="plan-col-name"><strong>${c.nombre || c.asignatura_full}</strong></td><td class="plan-col-cred"><strong>${c.creditos.toFixed(1)}</strong></td><td class="plan-col-tipo"><span class="badge-tipo ${c.tipo}">${c.tipo === 'O' ? 'Obligatorio' : 'Electivo'}</span></td><td class="plan-col-prereq" style="font-size:12px; color:#4B5563;">${c.prerequisito || '--'}</td></tr>`;
         });
