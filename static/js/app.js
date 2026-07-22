@@ -250,7 +250,7 @@ function renderCourseTables() {
         </tr>`;
     });
     const ppcValStr = (currentPeriod.ppc !== null && currentPeriod.ppc !== undefined) ? currentPeriod.ppc.toFixed(3) : 'Pendiente';
-    html += `</tbody></table><div style="margin-top: 14px; text-align: right; font-size: 14px; font-weight: 700;">Promedio Ponderado del Ciclo (${currentPeriod.period}): <span style="color: var(--primary); font-size: 16px;">${ppcValStr}</span></div>`;
+    html += `</tbody></table><div style="margin-top: 14px; text-align: right; font-size: 14px; font-weight: 700;">Promedio Ponderado del Ciclo (${currentPeriod.period}): <span style="color: #1D4ED8; font-size: 16px; font-weight: 800;">${ppcValStr}</span></div>`;
     wrapper.innerHTML = html;
     container.appendChild(wrapper);
 }
@@ -640,7 +640,7 @@ function renderSimCourseListForCycle(cycleNum) {
     const cycleData = byCycle[cycleNum] || { available: [], locked: [] };
     const maxCredits = getSimMaxCredits();
 
-    titleElem.innerText = `📚 Ciclo ${cycleNum} — Seleccione los cursos que desea llevar`;
+    titleElem.innerHTML = `<svg class="icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#2563EB"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> <span>Ciclo ${cycleNum} — Seleccione los cursos que desea llevar</span>`;
 
     // Render available courses for this cycle
     if (cycleData.available.length === 0) {

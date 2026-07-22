@@ -242,7 +242,10 @@
     <div class="modal-overlay" id="modal-simular-ciclo" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>➕ Simular Nuevo Ciclo</h2>
+                <h2 style="display:flex; align-items:center; gap:8px;">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#2563EB"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    Simular Nuevo Ciclo
+                </h2>
                 <button class="modal-close-btn" onclick="closeSimulateModal()">✕</button>
             </div>
 
@@ -279,18 +282,27 @@
             <div class="sim-courses-scroll">
                 <div id="sim-cycle-title" class="sim-cycle-title"></div>
                 <!-- Cursos Disponibles -->
-                <div class="sim-section-label available-label">✅ Disponibles (prerrequisitos cumplidos)</div>
+                <div class="sim-section-label available-label">
+                    <svg class="icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#10B981"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <span>Disponibles (prerrequisitos cumplidos)</span>
+                </div>
                 <div id="sim-available-list" class="sim-course-list"></div>
 
                 <!-- Cursos Bloqueados -->
-                <div class="sim-section-label locked-label">🔒 Bloqueados (prerrequisito pendiente)</div>
+                <div class="sim-section-label locked-label">
+                    <svg class="icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#6B7280"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span>Bloqueados (prerrequisito pendiente)</span>
+                </div>
                 <div id="sim-locked-list" class="sim-course-list"></div>
             </div>
 
             <!-- Botones de Acción -->
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeSimulateModal()">Cancelar</button>
-                <button class="btn btn-primary" id="btn-confirm-sim" onclick="confirmSimulatedPeriod()">✨ Crear Ciclo Simulado</button>
+                <button class="btn btn-outline" onclick="closeSimulateModal()" style="border-radius:10px;">Cancelar</button>
+                <button class="btn btn-action-soft" id="btn-confirm-sim" onclick="confirmSimulatedPeriod()" style="background:#2563EB; color:#FFFFFF; border:none;">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <span>Crear Ciclo Simulado</span>
+                </button>
             </div>
         </div>
     </div>
