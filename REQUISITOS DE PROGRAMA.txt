@@ -1,0 +1,138 @@
+REQUISITOS NO FUNCIONALES
+-Los archivos deben ser en Html 5  y Python.
+-El sistema debe generar un grafico de ponderados que muestre el puntaje en cada ciclo y el promedio ponderado general de la carrera:
+a. Estructura General y Títulos
+
+Título del Gráfico: Grafico de comparacion entre Periodo Academico y Promedio
+
+Alineación: Izquierda (top-left).
+
+Tipografía: Sans-serif (tipo Inter, Roboto o Arial), peso Bold / Negrita.
+
+Color del texto: Gris oscuro / Casi negro (#222222 / #1F2937).
+
+Fondo del Área de Dibujo (Chart Canvas): Gris claro tenue (#F6F6F6 o #F8F9FA).
+
+Fondo Contenedor: Blanco puro (#FFFFFF).
+
+b. Definición de Ejes
+
+Eje Horizontal (Eje X)
+
+Nombre del Eje: Periodos
+
+Ubicación: Inferior, centrado debajo de las etiquetas de datos.
+
+Estilo: Texto en negrita, sans-serif, color gris oscuro (#333333).
+
+Valores / Categorías (Ticks):
+
+2024-1
+
+2024-2
+
+2025-1
+
+2025-2
+
+Marcas de verificación (Ticks): Pequeñas líneas verticales en la base para cada categoría.
+
+Eje Vertical (Eje Y)
+
+Nombre del Eje: Promedios
+
+Ubicación: Izquierda, rotado 90 grados (vertical).
+
+Estilo: Texto en negrita, sans-serif, color gris oscuro (#333333).
+
+Escala y Rango:
+
+Valor Mínimo (min): 13.000
+
+Valor Máximo (max): 16.000
+
+Paso / Marcado (stepSize): 1.000
+
+Formato numérico: Decimal con 3 ceros a la derecha (13.000, 14.000, 15.000, 16.000).
+
+Líneas de Guía (Gridlines):
+
+Horizontales únicamente (4 líneas asociadas a cada tick).
+
+Color: Gris muy tenue (#E5E7EB o #E0E0E0).
+
+Sin líneas de cuadrícula verticales.
+
+c. Serie de Datos y Curva
+
+Tipo de Gráfico: Gráfico de líneas suavizado (Spline Chart / Smooth Line Chart).
+
+Marcadores de Puntos: Deshabilitados (sin círculos ni puntos visibles sobre la línea).
+
+Color de la Línea: Azul celeste brillante / Cyan (#1EA7FF o #00A3FF).
+
+Grosor de la Línea: Gruesa (aprox 4px a 5px).
+
+Tensión de la Curva (Bezier): Curvatura suave (Tensión  approx 0.4).
+
+
+
+
+-El sistema debe generar un tablero que muestre un Resumen de Historial Academico que muestre: 
+a. Creditaje Requerido para Egresar
+
+Valor: 221
+
+Descripción: Es la meta total de créditos exigida por el Plan de Estudios de la Escuela Profesional (en este caso, Ciencias de la Computación) para completar la carrera universitaria.
+
+b. Creditaje Aprobado
+
+
+Descripción: Suma acumulada de todos los créditos asociados a asignaturas aprobadas hasta la fecha.
+
+Desglose por Tipo de Créditos Aprobados:
+
+Obligatorios : Créditos completados correspondientes a materias obligatorias (estudios generales y asignaturas clave de la carrera).
+
+De Especialidad : Créditos aprobados en cursos del núcleo de la especialidad elegida.
+
+Electivos Generales : Créditos obtenidos mediante cursos electivos generales (ej. cursos de Estudios Generales de Ingeniería como INE002-Programación y Computación o INE013-Emprendimiento e Innovación).
+
+Electivos de Especialidad : Créditos obtenidos en electivos avanzados propios de la especialidad.
+
+Optativos : Créditos acumulados por cursos de carácter optativo.
+
+Alternativos : Créditos convalidados o sustitutos según reglamentación académica.
+
+De Otra Especialidad : Créditos ganados al cursar materias pertenecientes a otras escuelas profesionales o facultades.
+
+Más de una vez : Créditos contabilizados en asignaturas reevaluadas o recursadas más de una ocasión.
+
+Otros : Créditos diversos no clasificados en las categorías anteriores.
+
+c. Creditaje Faltante
+
+Descripción: Cantidad de créditos que el estudiante debe matricular y aprobar en los ciclos restantes para poder egresar.
+
+Relación Matemática:
+
+Creditaje Faltante = Creditaje Requerido- Creditaje Aprobado
+
+d. Promedio Ponderado
+
+Descripción: Es el Promedio Ponderado General (PPG) acumulado de toda la carrera en la escala vigesimal (0 a 20).
+
+-Una nota de promedio de curso  que de 10.5 a mas es redondeado a 11.
+-Las notas de cada una de las 3 notas de un curso tiene que ser enteras.
+
+REQUSITOS FUNCIONALES
+
+
+
+-El sistema debe permitir subir archivos pdf para subir el Plan de estudios del alumno donde estan todos los cursos de todos los ciclos  de la carrera con la siguiente estructura: Su respectiva Especialidad 
+| Nombre de la asignatura con su respectivo codigo  |Cantidad de Creditos | Tipo(Electivo E  u Obligatorio O ) | Grupo del curso | Curso de Prerrequisito | Grupo del prerrequisito 
+-El sistema deb permitir subir archivos pdf con el historial academico del alumno donde estan todos los cursos que ya ha llevado con todos los datos con la siguiente estructura:Su respectivo Ciclo | Plan | Tipo 
+| Asignatura | Calificación | Credito | Sección | Acta.
+
+-El sistema permitir editar  manualmente cada una las tres notas en un curso y hacer el recalculo de la nota .
+

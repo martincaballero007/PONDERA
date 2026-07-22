@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pondera - Cálculo de Promedios Ponderados UNMSM</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Header Navigation -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-badge">P</div>
+                <div>
+                    <h1>Pondera</h1>
+                    <p class="subtitle">Sistema de Cálculo de Promedios Ponderados UNMSM</p>
+                </div>
+            </div>
+            <div class="header-meta">
+                <span class="meta-tag"><strong id="student-name">Suba sus archivos PDF para comenzar</strong></span>
+                <span class="meta-tag plan-tag" id="header-plan-tag">Plan --</span>
+            </div>
+        </header>
+
+        <!-- Compatibility Warning Alert Banner -->
+        <div id="compatibility-alert-banner" class="alert-banner alert-warning mb-24" style="display: none;">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+                <h4 id="alert-title">Advertencia de Incompatibilidad entre Documentos</h4>
+                <div id="alert-message">El Plan de Estudios cargado no coincide con la carrera del Historial Académico.</div>
+            </div>
+        </div>
+
+        <!-- PDF Upload Bar -->
+        <section class="upload-section">
+            <div class="upload-card">
+                <div class="upload-card-left">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-info">
+                        <h3>Historial Académico</h3>
+                        <p>Subir PDF del SUM (Cursos y calificaciones)</p>
+                    </div>
+                </div>
+                <input type="file" id="historial-file-input" accept=".pdf" class="file-input" hidden>
+                <button class="btn btn-outline" onclick="document.getElementById('historial-file-input').click()">
+                    <span>📤 Subir Historial</span>
+                </button>
+            </div>
+
+            <div class="upload-card">
+                <div class="upload-card-left">
+                    <div class="upload-icon">📚</div>
+                    <div class="upload-info">
+                        <h3>Plan de Estudios</h3>
+                        <p>Subir PDF del Plan de Carrera</p>
+                    </div>
+                </div>
+                <input type="file" id="plan-file-input" accept=".pdf" class="file-input" hidden>
+                <button class="btn btn-outline" onclick="document.getElementById('plan-file-input').click()">
+                    <span>📤 Subir Plan</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Resumen de Historial Académico (4 Tarjetas Métricas KPI) -->
+        <section class="dashboard-grid">
+            <!-- PPG Card -->
+            <div class="metric-card ppg-card">
+                <div class="metric-header">
+                    <span class="metric-title">Promedio Ponderado General</span>
+                    <span class="metric-badge">PPG</span>
+                </div>
+                <div class="metric-value-large" id="ppg-val">--</div>
+                <div class="metric-footer">Acumulado Vigesimal (0-20)</div>
+            </div>
+
+            <!-- Required Credits Card -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">Creditaje Requerido</span>
+                    <span class="metric-badge info">Meta</span>
+                </div>
+                <div class="metric-value" id="req-credits-val">--</div>
+                <div class="metric-footer">Exigido para Egresar</div>
+            </div>
+
+            <!-- Approved Credits Card -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">Creditaje Aprobado</span>
+                    <span class="metric-badge success">Completado</span>
+                </div>
+                <div class="metric-value" id="app-credits-val">--</div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%;"></div>
+                </div>
+                <div class="metric-footer" id="progress-pct-text">Sin datos</div>
+            </div>
+
+            <!-- Missing Credits Card -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">Creditaje Faltante</span>
+                    <span class="metric-badge warning">Pendiente</span>
+                </div>
+                <div class="metric-value" id="missing-credits-val">--</div>
+                <div class="metric-footer">Para culminar la carrera</div>
+            </div>
+        </section>
+
+        <!-- Gráfico de Ponderados Section -->
+        <section class="chart-section-container mb-24">
+            <div class="chart-wrapper">
+                <canvas id="ponderadosChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Desglose por Tipo de Crédito y Resumen por Ciclo Section -->
+        <section class="stats-dual-section mb-24">
+            <!-- Desglose por Tipo de Crédito Card -->
+            <div class="breakdown-card">
+                <h2 class="section-heading">Desglose por Tipo de Crédito</h2>
+                <p class="section-subtext">Distribución del creditaje acumulado</p>
+                <div class="breakdown-grid-3col">
+                    <div class="breakdown-item">
+                        <span class="item-label">Obligatorios</span>
+                        <span class="item-val" id="cat-obligatorios">0.0</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="item-label">De Especialidad</span>
+                        <span class="item-val" id="cat-especialidad">0.0</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="item-label">Electivos Generales</span>
+                        <span class="item-val" id="cat-electivos-generales">0.0</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="item-label">Electivos Especialidad</span>
+                        <span class="item-val" id="cat-electivos-especialidad">0.0</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="item-label">Optativos</span>
+                        <span class="item-val" id="cat-optativos">0.0</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="item-label">Alternativos</span>
+                        <span class="item-val" id="cat-alternativos">0.0</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="item-label">De Otra Especialidad</span>
+                        <span class="item-val" id="cat-otra-especialidad">0.0</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="item-label">Más de una vez</span>
+                        <span class="item-val" id="cat-mas-de-una-vez">0.0</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="item-label">Otros</span>
+                        <span class="item-val" id="cat-otros">0.0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumen por Ciclo (PPC) Card -->
+            <div class="ppc-summary-card">
+                <h2 class="section-heading">Resumen por Ciclo (PPC)</h2>
+                <p class="section-subtext">Promedios Ponderados por Periodo Académico</p>
+                <div class="ppc-list" id="ppc-summary-list">
+                    <span class="text-muted">Suba su Historial Académico para ver sus periodos.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Edición Interactiva de Notas por Curso Section -->
+        <section class="courses-editor-section mb-24">
+            <div class="section-header-flex">
+                <div>
+                    <h2 class="section-heading">Edición Interactiva de Notas por Curso</h2>
+                    <p class="section-subtext">Edite las notas enteras (0-20) de EP (30%), EC (40%) y EF (30%) para recalcular los promedios en tiempo real.</p>
+                </div>
+                <button class="btn btn-primary" onclick="recalculateAll()">
+                    <span>🔄 Recalcular Todo</span>
+                </button>
+            </div>
+
+            <!-- Period Tabs Bar -->
+            <div class="period-tabs" id="period-tabs-bar"></div>
+
+            <!-- Course Table Container -->
+            <div class="tab-contents-container" id="tab-contents-container">
+                <div class="empty-state-box">
+                    <div style="font-size:36px; margin-bottom:10px;">📄</div>
+                    <h3>No hay datos de cursos cargados</h3>
+                    <p>Por favor, suba su archivo PDF de <strong>Historial Académico</strong> para visualizar sus asignaturas y editar sus notas.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Plan de Estudios Completo en Sección Aparte (Colapsable) -->
+        <section class="plan-estudios-section mb-24">
+            <div class="plan-section-header">
+                <div>
+                    <h2 class="section-heading">Plan de Estudios Completo</h2>
+                    <p class="section-subtext">Estructura curricular completa dividida por ciclos académicos</p>
+                </div>
+                <button class="btn btn-outline" id="plan-toggle-btn" onclick="togglePlanEstudios()">
+                    ▼ Ver Plan de Estudios Completo
+                </button>
+            </div>
+            
+            <div id="plan-estudios-body" style="display: none; margin-top: 20px;">
+                <div class="plan-cycles-container" id="plan-cycles-container">
+                    <div class="empty-state-box">
+                        <div style="font-size:36px; margin-bottom:10px;">📚</div>
+                        <h3>No hay datos de plan de estudios cargados</h3>
+                        <p>Por favor, suba su archivo PDF de <strong>Plan de Estudios</strong> para consultar la malla curricular de su carrera.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Pondera &copy; 2026 - Universidad Nacional Mayor de San Marcos</p>
+        </footer>
+    </div>
+
+    <!-- Application JavaScript -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
