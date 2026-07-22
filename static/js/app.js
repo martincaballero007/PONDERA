@@ -138,6 +138,11 @@ function renderChart() {
     let minVal = dataValues.length > 0 ? Math.min(...dataValues) : 13.0;
     const yMax = Math.max(16.0, Math.ceil(maxVal + 0.5));
     const yMin = Math.min(13.0, Math.floor(minVal - 0.5));
+
+    const fillGradient = ctx.createLinearGradient(0, 0, 0, 300);
+    fillGradient.addColorStop(0, 'rgba(37, 99, 235, 0.12)');
+    fillGradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+
     if (ponderadosChart) ponderadosChart.destroy();
     ponderadosChart = new Chart(ctx, {
         type: 'line',
@@ -147,15 +152,18 @@ function renderChart() {
             datasets: [{
                 label: 'Promedio Semestre',
                 data: dataValues.length > 0 ? dataValues : [0],
-                borderColor: '#1EA7FF',
-                borderWidth: 5,
+                borderColor: '#2563EB',
+                borderWidth: 4,
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 6,
-                pointHoverBackgroundColor: '#1EA7FF',
+                pointBackgroundColor: '#2563EB',
+                pointBorderColor: '#2563EB',
+                pointHoverBackgroundColor: '#2563EB',
                 pointHoverBorderColor: '#FFFFFF',
                 pointHoverBorderWidth: 2,
-                fill: false,
+                backgroundColor: fillGradient,
+                fill: true,
                 clip: false
             }]
         },
@@ -176,7 +184,7 @@ function renderChart() {
                     callbacks: {
                         title: (ctx) => ctx[0].label,
                         label: (ctx) => ` Promedio Semestre:  ${Number(ctx.parsed.y).toFixed(3)}`,
-                        labelColor: () => ({ borderColor: '#1EA7FF', backgroundColor: '#1EA7FF', borderWidth: 2, borderDash: [], borderRadius: 50 })
+                        labelColor: () => ({ borderColor: '#2563EB', backgroundColor: '#2563EB', borderWidth: 2, borderDash: [], borderRadius: 50 })
                     }
                 }
             },
