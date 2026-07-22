@@ -1,1 +1,19 @@
+# Python cache
 __pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# PDF files containing personal academic records
+*.pdf
+
+# Scratch / temporary test files
+scratch/
+
+# System and logs
+.DS_Store
+*.log
