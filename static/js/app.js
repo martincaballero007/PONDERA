@@ -275,26 +275,44 @@ function renderPPCSummaryList() {
 }
 
 function onGradeChange(periodName, courseIdx, field, val) {
-    let intVal = parseInt(val, 10);
-    if (isNaN(intVal)) intVal = 0;
-    intVal = Math.max(0, Math.min(20, intVal));
     const p = state.periods.find(item => item.period === periodName);
-    if (p && p.courses[courseIdx]) {
-        p.courses[courseIdx][field] = intVal;
-        p.courses[courseIdx].user_edited = true;
-        const ep = p.courses[courseIdx].ep || 0;
-        const ec = p.courses[courseIdx].ec || 0;
-        const ef = p.courses[courseIdx].ef || 0;
+    if (!p || !p.courses[courseIdx]) return;
+    const course = p.courses[courseIdx];
+
+    if (val === '' || val === null || val === undefined) {
+        delete course[field];
+    } else {
+        let intVal = parseInt(val, 10);
+        if (isNaN(intVal)) intVal = 0;
+        course[field] = Math.max(0, Math.min(20, intVal));
+    }
+    course.user_edited = true;
+
+    const hasEp = (course.ep !== undefined);
+    const hasEc = (course.ec !== undefined);
+    const hasEf = (course.ef !== undefined);
+
+    if (hasEp || hasEc || hasEf) {
+        const ep = course.ep || 0;
+        const ec = course.ec || 0;
+        const ef = course.ef || 0;
         const exact = 0.30 * ep + 0.40 * ec + 0.30 * ef;
         const rounded = Math.floor(exact + 0.5);
-        p.courses[courseIdx].calificacion = rounded;
+        course.calificacion = rounded;
         const finalElem = document.getElementById(`grade-final-${periodName}-${courseIdx}`);
         if (finalElem) {
             finalElem.innerText = rounded;
             finalElem.className = `grade-final ${rounded >= 11 ? 'grade-approved' : 'grade-disapproved'}`;
         }
-        recalculateAll();
+    } else {
+        course.calificacion = null;
+        const finalElem = document.getElementById(`grade-final-${periodName}-${courseIdx}`);
+        if (finalElem) {
+            finalElem.innerText = '-';
+            finalElem.className = 'grade-final grade-pending';
+        }
     }
+    recalculateAll();
 }
 
 function enrichLocalPeriodsWithPlan() {

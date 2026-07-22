@@ -197,6 +197,7 @@ def parse_historial_file(pdf_file_or_path):
                         if not code and acta:
                             code = extract_course_code_from_acta(acta)
 
+                        sec = sec or '1'
                         c_id = f"{current_period['period']}_{code}_{sec}"
                         existing = next((c for c in current_period['courses'] if c['id'] == c_id), None)
                         if not existing:
