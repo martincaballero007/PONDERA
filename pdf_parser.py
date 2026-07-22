@@ -56,71 +56,28 @@ def extract_header_metadata(text_lines):
             meta['plan'] = parts[1].strip()
     return meta
 
-def parse_historial_file(pdf_file_or_path):
-    """
-    Parses an UNMSM Historial Académico PDF file.
-    Returns (periods, resumen, metadata).
-    """
-    periods = []
-    current_period = None
-    resumen = {
-        'required_credits': 221.0,
-        'approved_credits': 0.0,
-        'obligatorios': 0.0,
-        'especialidad': 0.0,
-        'electivos_generales': 0.0,
-        'electivos_especialidad': 0.0,
-        'optativos': 0.0,
-        'alternativos': 0.0,
-        'otra_especialidad': 0.0,
-        'mas_de_una_vez': 0.0,
-        'otros': 0.0,
-        'missing_credits': 221.0,
-        'ppg': 0.0
-    }
-    metadata = {}
+def extract_course_code_from_acta(acta_str):
+    if not acta_str:
+        return ""
+    # Pattern 1: Alphanumeric code (INO101, INE002, INO201, etc.)
+    m_alpha = re.search(r'\b([A-Za-z]{3,6}\d{2,4})\b', acta_str)
+    if m_alpha:
+        return m_alpha.group(1)
+    
+    # Pattern 2: 9-digit course code right after UNMSM school prefix 20230 (e.g. 202302032303011P -> 203230301)
+    m_num9 = re.search(r'20230(\d{9})', acta_str)
+    if m_num9:
+        return m_num9.group(1)
+    
+    # Pattern 3: Look for a 9-digit course code starting with 203 (Computación) or standard UNMSM course prefix
+    m_course9 = re.search(r'\b(203\d{6}|\d{9})\b', acta_str)
+    if m_course9:
+        found = m_course9.group(1)
+        if not found.startswith('2024') and not found.startswith('2025') and not found.startswith('2026'):
+            return found
 
-    with pdfplumber.open(pdf_file_or_path) as pdf:
-        for page_idx, page in enumerate(pdf.pages):
-            raw_text = page.extract_text() or ""
-            text = clean_pdf_text(raw_text)
-            lines = text.split('\n')
-            
-            if page_idx == 0:
-                metadata = extract_header_metadata(lines)
-            
-            for l in lines:
-                l_str = l.strip()
-                if 'Creditaje Requerido para Egresar' in l_str:
-                    nums = re.findall(r'\d+\.?\d*', l_str)
-                    if nums: resumen['required_credits'] = float(nums[-1])
-                elif 'Creditaje Apobrado' in l_str or 'Creditaje Aprobado' in l_str:
-                    nums = re.findall(r'\d+\.?\d*', l_str)
-                    if nums: resumen['approved_credits'] = float(nums[-1])
-                elif 'Obligatorios' in l_str and 'Creditaje' not in l_str:
-                    nums = re.findall(r'\d+\.?\d*', l_str)
-                    if nums: resumen['obligatorios'] = float(nums[-1])
-                elif 'De Especialidad' in l_str:
-                    nums = re.findall(r'\d+\.?\d*', l_str)
-                    if nums: resumen['especialidad'] = float(nums[-1])
-                elif 'Electivos Generales' in l_str:
-                    nums = re.findall(r'\d+\.?\d*', l_str)
-                    if nums: resumen['electivos_generales'] = float(nums[-1])
-                elif 'Electivos de Especialidad' in l_str:
-                    nums = re.findall(r'\d+\.?\d*', l_str)
-                    if nums: resumen['electivos_especialidad'] = float(nums[-1])
-                elif 'Optativos' in l_str:
-                    nums = re.findall(r'\d+\.?\d*', l_str)
-                    if nums: resumen['optativos'] = float(nums[-1])
-                elif 'Alternativos' in l_str:
-                    nums = re.findall(r'\d+\.?\d*', l_str)
-                    if nums: resumen['alternativos'] = float(nums[-1])
-                elif 'De Otra Especialidad' in l_str:
-                    nums = re.findall(r'\d+\.?\d*', l_str)
-                    if nums: resumen['otra_especialidad'] = float(nums[-1])
-                elif 'Más de una vez' in l_str or 'Ms de una vez' in l_str:
-                    nums = re.findall(r'\d+\.?\d*', l_str)
-                    if nums: resumen['mas_de_una_vez'] = float(nums[-1])
+    return ""
+
 def parse_historial_file(pdf_file_or_path):
     """
     Parses an UNMSM Historial Académico PDF file.
@@ -197,9 +154,13 @@ def parse_historial_file(pdf_file_or_path):
                     if m: resumen['ppg'] = float(m[-1])
 
             pending_course = None
+            last_added_course = None
 
             for line in lines:
-                line_s = line.strip()
+                line_s = re.sub(r'\s+', ' ', clean_pdf_text(line.strip()))
+                if not line_s:
+                    continue
+
                 m_period = re.search(r'Periodo Acad[eé]mico\s+(\d{4}-\d)', line_s, re.IGNORECASE)
                 if m_period:
                     p_name = m_period.group(1)
@@ -208,8 +169,9 @@ def parse_historial_file(pdf_file_or_path):
                         current_period = {'period': p_name, 'courses': []}
                         periods.append(current_period)
                     pending_course = None
+                    last_added_course = None
                     continue
-                
+
                 if not current_period:
                     continue
 
@@ -217,67 +179,110 @@ def parse_historial_file(pdf_file_or_path):
                 if m_start:
                     ciclo, plan, tipo, rest = m_start.groups()
                     rest = (rest or '').strip()
-                    # Strictly match standard UNMSM acta ending [PA]\s*-\s*\S+
                     m_end = re.search(r'(?:(\d{1,2})\s+)?(\d+\.\d)\s+(\d+)\s+([PA]\s*-\s*\S+)$', rest) if rest else None
                     if m_end:
                         calif, cred, sec, acta = m_end.groups()
                         asig = rest[:m_end.start()].strip()
+                        asig = re.sub(r'\s+', ' ', asig)
                         calif_val = int(calif) if calif else None
                         code, name = parse_course_code_name(asig)
 
-                        current_period['courses'].append({
-                            'id': f"{p_name}_{code}_{sec}",
+                        if not code and acta:
+                            code = extract_course_code_from_acta(acta)
+
+                        c_id = f"{current_period['period']}_{code}_{sec}"
+                        existing = next((c for c in current_period['courses'] if c['id'] == c_id), None)
+                        if not existing:
+                            new_c = {
+                                'id': c_id,
+                                'ciclo': int(ciclo),
+                                'plan': plan,
+                                'tipo': tipo,
+                                'codigo': code,
+                                'nombre': name,
+                                'asignatura_full': asig,
+                                'calificacion': calif_val,
+                                'creditos': float(cred),
+                                'seccion': sec,
+                                'acta': acta,
+                                'ep': calif_val if calif_val is not None else 0,
+                                'ec': calif_val if calif_val is not None else 0,
+                                'ef': calif_val if calif_val is not None else 0,
+                                'en_curso': (calif_val is None),
+                                'user_edited': False
+                            }
+                            current_period['courses'].append(new_c)
+                            last_added_course = new_c
+                        else:
+                            last_added_course = existing
+                        pending_course = None
+                    else:
+                        pending_course = {
+                            'period': current_period,
                             'ciclo': int(ciclo),
                             'plan': plan,
                             'tipo': tipo,
-                            'codigo': code,
-                            'nombre': name,
-                            'asignatura_full': asig,
-                            'calificacion': calif_val,
-                            'creditos': float(cred),
-                            'seccion': sec,
-                            'acta': acta,
-                            'ep': calif_val if calif_val is not None else 0,
-                            'ec': calif_val if calif_val is not None else 0,
-                            'ef': calif_val if calif_val is not None else 0,
-                            'en_curso': (calif_val is None),
-                            'user_edited': False
-                        })
-                        pending_course = None
-                    else:
-                        pending_course = {'ciclo': int(ciclo), 'plan': plan, 'tipo': tipo, 'prefix': rest}
+                            'prefix': rest
+                        }
+                        last_added_course = None
                 elif pending_course:
                     m_end = re.search(r'(?:(\d{1,2})\s+)?(\d+\.\d)\s+(\d+)\s+([PA]\s*-\s*\S+)$', line_s)
                     if m_end:
                         calif, cred, sec, acta = m_end.groups()
                         suffix = line_s[:m_end.start()].strip()
                         full_asig = (pending_course['prefix'] + " " + suffix).strip()
+                        full_asig = re.sub(r'\s+', ' ', full_asig)
                         calif_val = int(calif) if calif else None
                         code, name = parse_course_code_name(full_asig)
 
-                        current_period['courses'].append({
-                            'id': f"{current_period['period']}_{code}_{sec}",
-                            'ciclo': pending_course['ciclo'],
-                            'plan': pending_course['plan'],
-                            'tipo': pending_course['tipo'],
-                            'codigo': code,
-                            'nombre': name,
-                            'asignatura_full': full_asig,
-                            'calificacion': calif_val,
-                            'creditos': float(cred),
-                            'seccion': sec,
-                            'acta': acta,
-                            'ep': calif_val if calif_val is not None else 0,
-                            'ec': calif_val if calif_val is not None else 0,
-                            'ef': calif_val if calif_val is not None else 0,
-                            'en_curso': (calif_val is None),
-                            'user_edited': False
-                        })
+                        if not code and acta:
+                            code = extract_course_code_from_acta(acta)
+
+                        target_period = pending_course['period']
+                        c_id = f"{target_period['period']}_{code}_{sec}"
+                        existing = next((c for c in target_period['courses'] if c['id'] == c_id), None)
+                        if not existing:
+                            new_c = {
+                                'id': c_id,
+                                'ciclo': pending_course['ciclo'],
+                                'plan': pending_course['plan'],
+                                'tipo': pending_course['tipo'],
+                                'codigo': code,
+                                'nombre': name,
+                                'asignatura_full': full_asig,
+                                'calificacion': calif_val,
+                                'creditos': float(cred),
+                                'seccion': sec,
+                                'acta': acta,
+                                'ep': calif_val if calif_val is not None else 0,
+                                'ec': calif_val if calif_val is not None else 0,
+                                'ef': calif_val if calif_val is not None else 0,
+                                'en_curso': (calif_val is None),
+                                'user_edited': False
+                            }
+                            target_period['courses'].append(new_c)
+                            last_added_course = new_c
+                        else:
+                            last_added_course = existing
                         pending_course = None
                     else:
                         pending_course['prefix'] = (pending_course['prefix'] + " " + line_s).strip()
-
-    return periods, resumen, metadata
+                elif last_added_course:
+                    is_header_or_metadata = any(k in line_s for k in ['Página', 'Documento Verificable', 'Ciclo Plan', 'Creditaje', 'Resumen', 'Periodo'])
+                    has_course_code_pattern = bool(re.search(r'(?:[A-Za-z0-9]{3,12}\s*-\s*|\b\d{9}\b)', line_s))
+                    
+                    if not is_header_or_metadata and not has_course_code_pattern:
+                        full_asig = (last_added_course['asignatura_full'] + " " + line_s).strip()
+                        full_asig = re.sub(r'\s+', ' ', full_asig)
+                        code, name = parse_course_code_name(full_asig)
+                        full_code = code or last_added_course.get('codigo', '')
+                        full_name = name or full_asig
+                        last_added_course['asignatura_full'] = full_asig
+                        if full_code:
+                            last_added_course['codigo'] = full_code
+                        if full_name:
+                            last_added_course['nombre'] = full_name
+                    last_added_course = None
 
     return periods, resumen, metadata
 

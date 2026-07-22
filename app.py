@@ -6,6 +6,28 @@ from pdf_parser import parse_historial_file, parse_plan_file, calculate_course_g
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
+def enrich_historial_with_plan(periods, plan_cycles):
+    if not plan_cycles or not periods:
+        return periods
+    
+    plan_map = {}
+    for cnum, courses in plan_cycles.items():
+        for c in courses:
+            c_code = c.get('codigo')
+            c_name = c.get('nombre') or c.get('asignatura_full')
+            if c_code and c_code != '--' and c_name:
+                plan_map[c_code] = c_name
+    
+    for p in periods:
+        for c in p.get('courses', []):
+            code = c.get('codigo')
+            if code and code in plan_map:
+                official_name = plan_map[code]
+                c['nombre'] = official_name
+                c['asignatura_full'] = f"{code} - {official_name}"
+
+    return periods
+
 def validate_document_compatibility(historial_meta, plan_meta, periods_data, plan_cycles):
     hist_codes = set()
     for p in periods_data:
@@ -303,7 +325,11 @@ def recalculate():
         data = request.json or {}
         periods = data.get('periods', [])
         base_resumen = data.get('resumen', {})
+        plan_cycles = data.get('plan_cycles', {})
         
+        if plan_cycles:
+            periods = enrich_historial_with_plan(periods, plan_cycles)
+            
         periods, resumen, chart_data = compute_all_ponderados(periods, base_resumen)
         
         return jsonify({

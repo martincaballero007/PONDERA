@@ -295,11 +295,33 @@ function onGradeChange(periodName, courseIdx, field, val) {
     }
 }
 
+function enrichLocalPeriodsWithPlan() {
+    if (!state.planCycles || !state.periods) return;
+    const planMap = {};
+    Object.keys(state.planCycles).forEach(cNum => {
+        state.planCycles[cNum].forEach(c => {
+            if (c.codigo && c.codigo !== '--' && (c.nombre || c.asignatura_full)) {
+                planMap[c.codigo] = c.nombre || c.asignatura_full;
+            }
+        });
+    });
+
+    state.periods.forEach(p => {
+        p.courses.forEach(c => {
+            if (c.codigo && planMap[c.codigo]) {
+                c.nombre = planMap[c.codigo];
+                c.asignatura_full = `${c.codigo} - ${planMap[c.codigo]}`;
+            }
+        });
+    });
+}
+
 async function recalculateAll() {
     try {
+        enrichLocalPeriodsWithPlan();
         const response = await fetch('/api/recalculate', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ periods: state.periods, resumen: state.resumen })
+            body: JSON.stringify({ periods: state.periods, resumen: state.resumen, plan_cycles: state.planCycles })
         });
         const data = await response.json();
         if (data.success) {
@@ -746,6 +768,7 @@ function setupUploadHandlers() {
                     state.compatibility = data.compatibility;
                     state.isEmpty = false;
                     state.activeTab = state.periods.length > 0 ? state.periods[0].period : null;
+                    enrichLocalPeriodsWithPlan();
                     renderAll();
                     if (data.compatibility && !data.compatibility.is_compatible) {
                         alert("⚠️ Advertencia: El Historial Académico cargado parece no coincidir con el Plan de Estudios.");
@@ -768,6 +791,7 @@ function setupUploadHandlers() {
                     state.planCycles = data.plan_cycles;
                     state.compatibility = data.compatibility;
                     state.isEmpty = false;
+                    enrichLocalPeriodsWithPlan();
                     renderAll();
                     if (data.compatibility && !data.compatibility.is_compatible) {
                         alert("⚠️ Advertencia: El Plan de Estudios cargado no coincide con la carrera del Historial Académico.");
