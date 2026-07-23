@@ -258,7 +258,7 @@ function renderCourseTables() {
         </tr>`;
     });
     const ppcValStr = (currentPeriod.ppc !== null && currentPeriod.ppc !== undefined) ? currentPeriod.ppc.toFixed(3) : 'Pendiente';
-    html += `</tbody></table><div style="margin-top: 14px; text-align: right; font-size: 14px; font-weight: 700;">Promedio Ponderado del Ciclo (${currentPeriod.period}): <span style="color: #1D4ED8; font-size: 16px; font-weight: 800;">${ppcValStr}</span></div>`;
+    html += `</tbody></table><div style="margin-top: 14px; text-align: right; font-size: 14px; font-weight: 700;">Promedio Ponderado del Ciclo (${currentPeriod.period}): <span id="active-period-ppc-val" style="color: #1D4ED8; font-size: 16px; font-weight: 800;">${ppcValStr}</span></div>`;
     wrapper.innerHTML = html;
     container.appendChild(wrapper);
 }
@@ -386,6 +386,16 @@ function undoChanges() {
     alert("↺ Se han deshecho todos los cambios, notas editadas y ciclos simulados.");
 }
 
+function updateActivePeriodPPCDisplay() {
+    const currentPeriod = state.periods.find(p => p.period === state.activeTab);
+    if (!currentPeriod) return;
+    const elem = document.getElementById('active-period-ppc-val');
+    if (elem) {
+        const ppcValStr = (currentPeriod.ppc !== null && currentPeriod.ppc !== undefined) ? currentPeriod.ppc.toFixed(3) : 'Pendiente';
+        elem.innerText = ppcValStr;
+    }
+}
+
 async function recalculateAll() {
     try {
         enrichLocalPeriodsWithPlan();
@@ -402,6 +412,7 @@ async function recalculateAll() {
             renderChart();
             renderPeriodTabs();
             renderPPCSummaryList();
+            updateActivePeriodPPCDisplay();
         }
     } catch (err) { console.error("Recalculation error:", err); }
 }
