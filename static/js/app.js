@@ -285,41 +285,67 @@ function renderPPCSummaryList() {
 function onGradeChange(periodName, courseIdx, field, val) {
     const p = state.periods.find(item => item.period === periodName);
     if (!p || !p.courses[courseIdx]) return;
-    const course = p.courses[courseIdx];
+    const targetCourse = p.courses[courseIdx];
 
-    if (val === '' || val === null || val === undefined) {
-        delete course[field];
-    } else {
-        let intVal = parseInt(val, 10);
-        if (isNaN(intVal)) intVal = 0;
-        course[field] = Math.max(0, Math.min(20, intVal));
-    }
-    course.user_edited = true;
+    const targetCode = (targetCourse.codigo && targetCourse.codigo !== '--') ? targetCourse.codigo : null;
+    const targetNormName = normalizeCourseName(targetCourse.nombre || targetCourse.asignatura_full);
 
-    const hasEp = (course.ep !== undefined);
-    const hasEc = (course.ec !== undefined);
-    const hasEf = (course.ef !== undefined);
-
-    if (hasEp || hasEc || hasEf) {
-        const ep = course.ep || 0;
-        const ec = course.ec || 0;
-        const ef = course.ef || 0;
-        const exact = 0.30 * ep + 0.40 * ec + 0.30 * ef;
-        const rounded = Math.floor(exact + 0.5);
-        course.calificacion = rounded;
-        const finalElem = document.getElementById(`grade-final-${periodName}-${courseIdx}`);
-        if (finalElem) {
-            finalElem.innerText = rounded;
-            finalElem.className = `grade-final ${rounded >= 11 ? 'grade-approved' : 'grade-disapproved'}`;
+    // Find all matching courses in this period to synchronize grades across duplicate/linked entries
+    const matchingIndices = [];
+    p.courses.forEach((c, idx) => {
+        const cCode = (c.codigo && c.codigo !== '--') ? c.codigo : null;
+        const cNormName = normalizeCourseName(c.nombre || c.asignatura_full);
+        if ((targetCode && cCode && targetCode === cCode) || 
+            (targetNormName && cNormName && targetNormName === cNormName)) {
+            matchingIndices.push(idx);
         }
-    } else {
-        course.calificacion = null;
-        const finalElem = document.getElementById(`grade-final-${periodName}-${courseIdx}`);
-        if (finalElem) {
-            finalElem.innerText = '-';
-            finalElem.className = 'grade-final grade-pending';
+    });
+
+    matchingIndices.forEach(idx => {
+        const c = p.courses[idx];
+        if (val === '' || val === null || val === undefined) {
+            delete c[field];
+        } else {
+            let intVal = parseInt(val, 10);
+            if (isNaN(intVal)) intVal = 0;
+            c[field] = Math.max(0, Math.min(20, intVal));
         }
-    }
+        c.user_edited = true;
+
+        const hasEp = (c.ep !== undefined);
+        const hasEc = (c.ec !== undefined);
+        const hasEf = (c.ef !== undefined);
+
+        if (hasEp || hasEc || hasEf) {
+            const ep = c.ep || 0;
+            const ec = c.ec || 0;
+            const ef = c.ef || 0;
+            const exact = 0.30 * ep + 0.40 * ec + 0.30 * ef;
+            const rounded = Math.floor(exact + 0.5);
+            c.calificacion = rounded;
+            const finalElem = document.getElementById(`grade-final-${periodName}-${idx}`);
+            if (finalElem) {
+                finalElem.innerText = rounded;
+                finalElem.className = `grade-final ${rounded >= 11 ? 'grade-approved' : 'grade-disapproved'}`;
+            }
+        } else {
+            c.calificacion = null;
+            const finalElem = document.getElementById(`grade-final-${periodName}-${idx}`);
+            if (finalElem) {
+                finalElem.innerText = '-';
+                finalElem.className = 'grade-final grade-pending';
+            }
+        }
+
+        // Synchronize DOM input values for other matching rows
+        if (idx !== courseIdx) {
+            const rowInputs = document.querySelectorAll(`[oninput*="'${periodName}', ${idx}, '${field}'"]`);
+            rowInputs.forEach(input => {
+                input.value = (val === '' || val === null || val === undefined) ? '' : c[field];
+            });
+        }
+    });
+
     recalculateAll();
 }
 
@@ -455,45 +481,70 @@ function getEligibleCourses() {
     const available = [];
     const locked = [];
 
+    // Group courses by unique key per cycle to consolidate duplicate prerequisite rows from Plan PDF
     Object.keys(cycles).sort((a, b) => parseInt(a) - parseInt(b)).forEach(cNum => {
+        const grouped = new Map();
+
         cycles[cNum].forEach(c => {
-            const code = c.codigo || '--';
+            const code = (c.codigo && c.codigo !== '--') ? c.codigo : null;
             const normName = normalizeCourseName(c.nombre || c.asignatura_full);
-            
+            const key = code || normName;
+            if (!key) return;
+
+            if (!grouped.has(key)) {
+                grouped.set(key, {
+                    codigo: c.codigo || '--',
+                    nombre: c.nombre || c.asignatura_full,
+                    creditos: c.creditos,
+                    tipo: c.tipo,
+                    ciclo: parseInt(cNum),
+                    prereqStrings: []
+                });
+            }
+            const gEntry = grouped.get(key);
+            const pStr = (c.prerequisito || '--').trim();
+            if (pStr !== '--' && pStr !== '') {
+                gEntry.prereqStrings.push(pStr);
+            }
+        });
+
+        grouped.forEach((gEntry) => {
+            const code = gEntry.codigo;
+            const normName = normalizeCourseName(gEntry.nombre);
+
             // Skip if already taken (by code OR by normalized name)
             if ((code !== '--' && coursed.has(code)) || (normName && coursed.has(normName))) return;
 
-            const prereqStr = (c.prerequisito || '--').trim();
             let prereqMet = true;
             let missingPrereqs = [];
+            const allPrereqItems = new Set();
 
-            if (prereqStr !== '--' && prereqStr !== '') {
-                // Parse prerequisite entries (code - name or just code)
+            gEntry.prereqStrings.forEach(prereqStr => {
                 const prereqItems = prereqStr.split(/[,;]/).map(s => s.trim()).filter(s => s.length > 1);
+                prereqItems.forEach(item => allPrereqItems.add(item));
+            });
 
-                prereqItems.forEach(item => {
-                    const parts = item.split(' - ');
-                    const pCode = parts[0].trim();
-                    const pName = parts.length > 1 ? normalizeCourseName(parts[1]) : normalizeCourseName(item);
+            allPrereqItems.forEach(item => {
+                const parts = item.split(' - ');
+                const pCode = parts[0].trim();
+                const pName = parts.length > 1 ? normalizeCourseName(parts[1]) : normalizeCourseName(item);
 
-                    // Check if approved by code OR by name
-                    const isApprovedByCode = (pCode && pCode !== '--' && approved.has(pCode));
-                    const isApprovedByName = (pName && approved.has(pName));
+                const isApprovedByCode = (pCode && pCode !== '--' && approved.has(pCode));
+                const isApprovedByName = (pName && approved.has(pName));
 
-                    if (!isApprovedByCode && !isApprovedByName) {
-                        prereqMet = false;
-                        missingPrereqs.push(item);
-                    }
-                });
-            }
+                if (!isApprovedByCode && !isApprovedByName) {
+                    prereqMet = false;
+                    missingPrereqs.push(item);
+                }
+            });
 
             const entry = {
                 codigo: code,
-                nombre: c.nombre || c.asignatura_full,
-                creditos: c.creditos,
-                tipo: c.tipo,
-                ciclo: parseInt(cNum),
-                prerequisito: prereqStr,
+                nombre: gEntry.nombre,
+                creditos: gEntry.creditos,
+                tipo: gEntry.tipo,
+                ciclo: gEntry.ciclo,
+                prerequisito: Array.from(allPrereqItems).join(', ') || '--',
                 prereqMet: prereqMet,
                 missingPrereqs: missingPrereqs
             };
