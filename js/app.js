@@ -45,20 +45,18 @@ document.addEventListener('DOMContentLoaded', () => {
     setupUploadHandlers();
 });
 
-async function fetchInitialData() {
-    try {
-        const response = await fetch('/api/initial-data');
-        const data = await response.json();
-        if (data.success) {
-            state.periods = data.periods || [];
-            state.resumen = data.resumen || {};
-            state.chartData = data.chart_data || { labels: [], values: [] };
-            state.planCycles = data.plan_cycles || {};
-            state.compatibility = data.compatibility || {};
-            state.isEmpty = data.is_empty || true;
-            renderAll();
-        }
-    } catch (err) { console.error("Failed to fetch initial data:", err); }
+function fetchInitialData() {
+    state.periods = [];
+    state.resumen = {
+        required_credits: 0.0, approved_credits: 0.0, obligatorios: 0.0, especialidad: 0.0,
+        electivos_generales: 0.0, electivos_especialidad: 0.0, optativos: 0.0, alternativos: 0.0,
+        otra_especialidad: 0.0, mas_de_una_vez: 0.0, otros: 0.0, missing_credits: 0.0, ppg: 0.0
+    };
+    state.chartData = { labels: [], values: [] };
+    state.planCycles = {};
+    state.compatibility = { is_compatible: true, reasons: [] };
+    state.isEmpty = true;
+    renderAll();
 }
 
 function renderAll() {
@@ -360,23 +358,20 @@ function undoChanges() {
     alert("↺ Se han deshecho todos los cambios, notas editadas y ciclos simulados.");
 }
 
-async function recalculateAll() {
+function recalculateAll() {
     try {
         enrichLocalPeriodsWithPlan();
-        const response = await fetch('/api/recalculate', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ periods: state.periods, resumen: state.resumen, plan_cycles: state.planCycles })
-        });
-        const data = await response.json();
-        if (data.success) {
-            state.periods = data.periods;
-            state.resumen = data.resumen;
-            state.chartData = data.chart_data;
-            renderDashboard();
-            renderChart();
-            renderPeriodTabs();
-            renderPPCSummaryList();
-        }
+        const baseResumen = state.initialResumen ? JSON.parse(JSON.stringify(state.initialResumen)) : {};
+        const calcResult = window.computeAllPonderados(state.periods, baseResumen);
+        
+        state.periods = calcResult.periodsData;
+        state.resumen = calcResult.resumen;
+        state.chartData = calcResult.chartData;
+        
+        renderDashboard();
+        renderChart();
+        renderPeriodTabs();
+        renderPPCSummaryList();
     } catch (err) { console.error("Recalculation error:", err); }
 }
 
@@ -798,53 +793,53 @@ function deleteSimulatedPeriod(periodName) {
 function setupUploadHandlers() {
     document.getElementById('historial-file-input').addEventListener('change', async (e) => {
         if (e.target.files.length > 0) {
-            const formData = new FormData();
-            formData.append('file', e.target.files[0]);
             try {
-                const response = await fetch('/api/upload-historial', { method: 'POST', body: formData });
-                const data = await response.json();
-                if (data.success) {
-                    // Preserve simulated periods
-                    const simPeriods = state.periods.filter(p => p.is_simulated);
-                    state.periods = [...data.periods, ...simPeriods];
-                    state.resumen = data.resumen;
-                    state.initialPeriods = JSON.parse(JSON.stringify(data.periods));
-                    state.initialResumen = JSON.parse(JSON.stringify(data.resumen));
-                    state.chartData = data.chart_data;
-                    state.compatibility = data.compatibility;
-                    state.isEmpty = false;
-                    state.activeTab = state.periods.length > 0 ? state.periods[0].period : null;
-                    enrichLocalPeriodsWithPlan();
-                    renderAll();
-                    if (data.compatibility && !data.compatibility.is_compatible) {
-                        alert("⚠️ Advertencia: El Historial Académico cargado parece no coincidir con el Plan de Estudios.");
-                    } else {
-                        alert("¡Historial académico cargado exitosamente!");
-                    }
-                } else { alert("Error al procesar el historial: " + data.error); }
+                const data = await window.parseHistorialFile(e.target.files[0]);
+                const calcResult = window.computeAllPonderados(data.periods, data.resumen);
+                const compatInfo = window.validateDocumentCompatibility(data.metadata, {}, calcResult.periodsData, {});
+                
+                const simPeriods = state.periods.filter(p => p.is_simulated);
+                state.periods = [...calcResult.periodsData, ...simPeriods];
+                state.resumen = calcResult.resumen;
+                state.initialPeriods = JSON.parse(JSON.stringify(calcResult.periodsData));
+                state.initialResumen = JSON.parse(JSON.stringify(calcResult.resumen));
+                state.chartData = calcResult.chartData;
+                state.compatibility = compatInfo;
+                state.compatibility.historial_meta = data.metadata;
+                state.isEmpty = false;
+                state.activeTab = state.periods.length > 0 ? state.periods[0].period : null;
+                
+                enrichLocalPeriodsWithPlan();
+                recalculateAll();
+                
+                if (compatInfo && !compatInfo.is_compatible) {
+                    alert("⚠️ Advertencia: El Historial Académico cargado parece no coincidir con el Plan de Estudios.");
+                } else {
+                    alert("¡Historial académico cargado exitosamente!");
+                }
             } catch (err) { alert("Error al subir el archivo de historial: " + err); }
         }
     });
 
     document.getElementById('plan-file-input').addEventListener('change', async (e) => {
         if (e.target.files.length > 0) {
-            const formData = new FormData();
-            formData.append('file', e.target.files[0]);
             try {
-                const response = await fetch('/api/upload-plan', { method: 'POST', body: formData });
-                const data = await response.json();
-                if (data.success) {
-                    state.planCycles = data.plan_cycles;
-                    state.compatibility = data.compatibility;
-                    state.isEmpty = false;
-                    enrichLocalPeriodsWithPlan();
-                    renderAll();
-                    if (data.compatibility && !data.compatibility.is_compatible) {
-                        alert("⚠️ Advertencia: El Plan de Estudios cargado no coincide con la carrera del Historial Académico.");
-                    } else {
-                        alert("¡Plan de estudios cargado exitosamente!");
-                    }
-                } else { alert("Error al procesar el plan: " + data.error); }
+                const data = await window.parsePlanFile(e.target.files[0]);
+                const histMeta = state.compatibility ? state.compatibility.historial_meta : {};
+                const compatInfo = window.validateDocumentCompatibility(histMeta, data.metadata, state.periods, data.cycles);
+                
+                state.planCycles = data.cycles;
+                state.compatibility = compatInfo;
+                state.isEmpty = false;
+                
+                enrichLocalPeriodsWithPlan();
+                recalculateAll();
+                
+                if (compatInfo && !compatInfo.is_compatible) {
+                    alert("⚠️ Advertencia: El Plan de Estudios cargado no coincide con la carrera del Historial Académico.");
+                } else {
+                    alert("¡Plan de estudios cargado exitosamente!");
+                }
             } catch (err) { alert("Error al subir el archivo de plan de estudios: " + err); }
         }
     });

@@ -11,8 +11,6 @@ venv/
 # PDF files containing personal academic records
 *.pdf
 
-# Scratch / temporary test files
-scratch/
 
 # System and logs
 .DS_Store
