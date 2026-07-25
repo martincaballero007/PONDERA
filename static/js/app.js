@@ -254,7 +254,7 @@ function renderCourseTables() {
             <td><input type="number" class="grade-input" min="0" max="20" step="1" value="${showEmpty ? '' : epVal}" placeholder="--" oninput="onGradeChange('${currentPeriod.period}', ${idx}, 'ep', this.value)" onchange="onGradeChange('${currentPeriod.period}', ${idx}, 'ep', this.value)"></td>
             <td><input type="number" class="grade-input" min="0" max="20" step="1" value="${showEmpty ? '' : ecVal}" placeholder="--" oninput="onGradeChange('${currentPeriod.period}', ${idx}, 'ec', this.value)" onchange="onGradeChange('${currentPeriod.period}', ${idx}, 'ec', this.value)"></td>
             <td><input type="number" class="grade-input" min="0" max="20" step="1" value="${showEmpty ? '' : efVal}" placeholder="--" oninput="onGradeChange('${currentPeriod.period}', ${idx}, 'ef', this.value)" onchange="onGradeChange('${currentPeriod.period}', ${idx}, 'ef', this.value)"></td>
-            <td><span class="grade-final ${gradeClass}" id="grade-final-${currentPeriod.period}-${idx}">${califDisplay}</span></td>
+            <td><input type="number" class="grade-input grade-final-input ${gradeClass}" min="0" max="20" step="1" value="${showEmpty ? '' : (califDisplay === '-' ? '' : califDisplay)}" placeholder="--" id="grade-final-${currentPeriod.period}-${idx}" oninput="onFinalGradeChange('${currentPeriod.period}', ${idx}, this.value)" onchange="onFinalGradeChange('${currentPeriod.period}', ${idx}, this.value)"></td>
         </tr>`;
     });
     const ppcValStr = (currentPeriod.ppc !== null && currentPeriod.ppc !== undefined) ? currentPeriod.ppc.toFixed(3) : 'Pendiente';
@@ -325,15 +325,15 @@ function onGradeChange(periodName, courseIdx, field, val) {
             c.calificacion = rounded;
             const finalElem = document.getElementById(`grade-final-${periodName}-${idx}`);
             if (finalElem) {
-                finalElem.innerText = rounded;
-                finalElem.className = `grade-final ${rounded >= 11 ? 'grade-approved' : 'grade-disapproved'}`;
+                finalElem.value = rounded;
+                finalElem.className = `grade-input grade-final-input ${rounded >= 11 ? 'grade-approved' : 'grade-disapproved'}`;
             }
         } else {
             c.calificacion = null;
             const finalElem = document.getElementById(`grade-final-${periodName}-${idx}`);
             if (finalElem) {
-                finalElem.innerText = '-';
-                finalElem.className = 'grade-final grade-pending';
+                finalElem.value = '';
+                finalElem.className = 'grade-input grade-final-input grade-pending';
             }
         }
 
@@ -343,6 +343,66 @@ function onGradeChange(periodName, courseIdx, field, val) {
             rowInputs.forEach(input => {
                 input.value = (val === '' || val === null || val === undefined) ? '' : c[field];
             });
+        }
+    });
+
+    recalculateAll();
+}
+
+function onFinalGradeChange(periodName, courseIdx, val) {
+    const p = state.periods.find(item => item.period === periodName);
+    if (!p || !p.courses[courseIdx]) return;
+    const targetCourse = p.courses[courseIdx];
+
+    const targetCode = (targetCourse.codigo && targetCourse.codigo !== '--') ? targetCourse.codigo : null;
+    const targetNormName = normalizeCourseName(targetCourse.nombre || targetCourse.asignatura_full);
+
+    const matchingIndices = [];
+    p.courses.forEach((c, idx) => {
+        const cCode = (c.codigo && c.codigo !== '--') ? c.codigo : null;
+        const cNormName = normalizeCourseName(c.nombre || c.asignatura_full);
+        if ((targetCode && cCode && targetCode === cCode) || 
+            (targetNormName && cNormName && targetNormName === cNormName)) {
+            matchingIndices.push(idx);
+        }
+    });
+
+    matchingIndices.forEach(idx => {
+        const c = p.courses[idx];
+        if (val === '' || val === null || val === undefined) {
+            delete c.ep;
+            delete c.ec;
+            delete c.ef;
+            c.calificacion = null;
+        } else {
+            let intVal = parseInt(val, 10);
+            if (isNaN(intVal)) intVal = 0;
+            intVal = Math.max(0, Math.min(20, intVal));
+            c.ep = intVal;
+            c.ec = intVal;
+            c.ef = intVal;
+            c.calificacion = intVal;
+        }
+        c.user_edited = true;
+
+        // Synchronize DOM inputs for EP, EC, EF
+        const fields = ['ep', 'ec', 'ef'];
+        fields.forEach(f => {
+            const rowInputs = document.querySelectorAll(`[oninput*="'${periodName}', ${idx}, '${f}'"]`);
+            rowInputs.forEach(input => {
+                input.value = (val === '' || val === null || val === undefined) ? '' : c[f];
+            });
+        });
+
+        const finalInput = document.getElementById(`grade-final-${periodName}-${idx}`);
+        if (finalInput) {
+            if (c.calificacion !== null && c.calificacion !== undefined) {
+                finalInput.value = c.calificacion;
+                finalInput.className = `grade-input grade-final-input ${c.calificacion >= 11 ? 'grade-approved' : 'grade-disapproved'}`;
+            } else {
+                finalInput.value = '';
+                finalInput.className = 'grade-input grade-final-input grade-pending';
+            }
         }
     });
 
